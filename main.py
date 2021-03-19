@@ -133,7 +133,6 @@ st.sidebar.header('Extract tweets from how many days ago?')
 days_to_subtract = st.sidebar.slider(' ', min_value=0, max_value=7, step=1, value=0)
 date_since = date.today() - timedelta(days=days_to_subtract)
 numRuns = 1
-flag=0
 
 with header:
     st.title('Welcome to our Data Science Project')
@@ -159,7 +158,6 @@ with dataset:
     if pressed:
 
         scraptweets(search_words, date_since, numTweets, numRuns)
-        flag=1
         st.success('Scraping done successfully ')
 
 
