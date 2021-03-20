@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
 import tweepy
-from PIL import Image
 import plotly as pt
+import plotly.graph_objects as go
 from tweepy import OAuthHandler
-from tweepy.streaming import StreamListener
 import json
 import csv
 import re
@@ -14,6 +13,24 @@ import preprocessor as p
 import os
 import time
 from datetime import datetime, timedelta, date
+import sys
+import numpy as np
+import pycountry
+from bs4 import BeautifulSoup
+from PIL import Image
+import nltk
+nltk.downloader.download('vader_lexicon')
+nltk.download('stopwords')
+nltk.download('wordnet')
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
+from nltk.stem import WordNetLemmatizer
+from nltk.stem.porter import PorterStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from langdetect import detect
+from nltk.stem import SnowballStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import CountVectorizer
 
 #authorize tweepy
 consumer_key = 'e62eKZbH5PiOqscveQE2iqEZV'
@@ -113,6 +130,7 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
         print('Total time taken to scrap is {} minutes.'.format(round(program_end - program_start) / 60, 2))
 
 
+
 # streamlit front-end
 def local_css(file_name):
     with open(file_name) as f:
@@ -134,12 +152,23 @@ days_to_subtract = st.sidebar.slider(' ', min_value=0, max_value=7, step=1, valu
 date_since = date.today() - timedelta(days=days_to_subtract)
 numRuns = 1
 
+def percentage(part,whole):
+    return 100 * float(part)/float(whole)
+positive = 0
+negative = 0
+neutral = 0
+polarity = 0
+tweet_list = []
+neutral_list = []
+negative_list = []
+positive_list = []
+
 with header:
     st.title('Welcome to our Data Science Project')
     st.subheader('We will analyse data obtained by scrapping tweets using the twitter API')
     st.header('')
-    st.header('')
     st.header('Enter the hashtag:')
+
 with dataset:
     search_words = st.text_input('', '#')
     col1, col2 = st.beta_columns(2)
@@ -154,11 +183,182 @@ with dataset:
         except FileNotFoundError:
             st.error('Please perform scraping first')
 
+#Sentiment Analysis:
+    if search_words != '#' and search_words != '':
+        if pressed:
+            scraptweets(search_words, date_since, numTweets, numRuns)
+            st.success('Scraping done successfully ')
+            tweets = pd.read_csv('data/test_data_tweets.csv')
+            column1, column2 = st.beta_columns(2)
+            tweetList= tweets.text
+            for tweet in tweetList:
+                tweet_list.append(tweet)
+                analysis = TextBlob(tweet)
+                score = SentimentIntensityAnalyzer().polarity_scores(tweet)
+                neg = score['neg']
+                neu = score['neu']
+                pos = score['pos']
+                comp = score['compound']
+                polarity += analysis.sentiment.polarity
 
-    if pressed:
+                if neg > pos:
+                    negative_list.append(tweet)
+                    negative += 1
+                elif pos > neg:
+                    positive_list.append(tweet)
+                    positive += 1
+                elif pos == neg:
+                    neutral_list.append(tweet)
+                    neutral += 1
 
-        scraptweets(search_words, date_since, numTweets, numRuns)
-        st.success('Scraping done successfully ')
+            positive = percentage(positive, numTweets)
+            negative = percentage(negative, numTweets)
+            neutral = percentage(neutral, numTweets)
+            polarity = percentage(polarity, numTweets)
+            positive = format(positive, '.1f')
+            negative = format(negative, '.1f')
+            neutral = format(neutral, '.1f')
+
+            # Number of Tweets (Total, Positive, Negative, Neutral)
+            tweet_list = pd.DataFrame(tweet_list)
+            neutral_list = pd.DataFrame(neutral_list)
+            negative_list = pd.DataFrame(negative_list)
+            positive_list = pd.DataFrame(positive_list)
+            pos_num = len(positive_list)
+            neg_num = len(negative_list)
+            neu_num = len(neutral_list)
+            with column1:
+                st.header('')
+                st.header('')
+                st.write("total number of tweets: ", len(tweet_list))
+                st.write("number of positive tweets: ", pos_num)
+                st.write("number of negative tweets: ", neg_num)
+                st.write("number of neutral tweets: ", neu_num)
+
+            column2.write('Tweet List:')
+            column2.write(tweet_list)
 
 
+            # Cleaning Text (RT, Punctuation etc)
+            tweet_list.drop_duplicates(inplace=True)
+            # Creating new dataframe and new features
+            tw_list = pd.DataFrame(tweet_list)
+            tw_list["text"] = tw_list[0]
+
+            # Removing Punctuation
+            def remove_punctuation(text):
+                no_punct = [words for words in text if words not in string.punctuation]
+                words_wo_punct = ''.join(no_punct)
+                return words_wo_punct
+
+            tw_list['text'] = tw_list['text'].apply(lambda x: remove_punctuation(x))
+
+            #tokenization
+            def tokenize(text):
+                split = re.split("\W+", text) #Here, "\W+" splits on one or more non-word character
+                return split
+
+            tw_list['text'] = tw_list['text'].apply(lambda x: tokenize(x.lower()))
+
+
+            #removing stopwords
+            stopword = nltk.corpus.stopwords.words('english')
+
+            def remove_stopwords(text):
+                text = [word for word in text if word not in stopword]
+                return text
+
+            tw_list['text'] = tw_list['text'].apply(lambda x: remove_stopwords(x))
+
+
+            #lemmetize text
+            lemmatizer = WordNetLemmatizer()
+
+            def word_lemmatizer(text):
+                lem_text = [lemmatizer.lemmatize(i) for i in text]
+                return lem_text
+
+            tw_list['text'] = tw_list['text'].apply(lambda x: word_lemmatizer(x))
+
+            #converting class list to string
+            def list_to_string(texts):
+                sentence = '-'.join(texts)
+                sentence = ' '.join(texts)
+                return sentence
+
+            tw_list['text'] = tw_list['text'].apply(lambda x: list_to_string(x))
+
+            # Calculating Negative, Positive, Neutral and Compound values again
+            tw_list[['polarity', 'subjectivity']] = tw_list['text'].apply(
+                lambda Text: pd.Series(TextBlob(Text).sentiment))
+            for index, row in tw_list['text'].iteritems():
+                score = SentimentIntensityAnalyzer().polarity_scores(row)
+                neg = score['neg']
+                neu = score['neu']
+                pos = score['pos']
+                comp = score['compound']
+                if neg > pos:
+                    tw_list.loc[index, 'sentiment'] = "negative"
+                elif pos > neg:
+                    tw_list.loc[index, 'sentiment'] = "positive"
+                else:
+                    tw_list.loc[index, 'sentiment'] = "neutral"
+                tw_list.loc[index, 'neg'] = neg
+                tw_list.loc[index, 'neu'] = neu
+                tw_list.loc[index, 'pos'] = pos
+                tw_list.loc[index, 'compound'] = comp
+
+
+            # Creating new data frames for all sentiments (positive, negative and neutral)
+            tw_list_negative = tw_list[tw_list["sentiment"] == "negative"]
+            tw_list_positive = tw_list[tw_list["sentiment"] == "positive"]
+            tw_list_neutral = tw_list[tw_list["sentiment"] == "neutral"]
+
+            tw_neutral_list = pd.DataFrame(tw_list_neutral)
+            tw_negative_list = pd.DataFrame(tw_list_negative)
+            tw_positive_list = pd.DataFrame(tw_list_positive)
+            pos_num = len(tw_positive_list)
+            neg_num = len(tw_negative_list)
+            neu_num = len(tw_neutral_list)
+
+            st.header('')
+            st.header('After cleaning data:')
+            st.write("total number of tweets: ", len(tw_list))
+            st.write("number of positive number: ", pos_num)
+            st.write("number of negative number: ", neg_num)
+            st.write("number of neutral number: ", neu_num)
+
+            st.write('Cleaned Tweet List:')
+            st.write(tw_list)
+
+            # Visualizing Data
+            st.header('')
+            bar_chart = ['positive', 'neutral', 'negative']
+
+            fig = go.Figure([go.Bar(x=bar_chart, y=[pos_num, neu_num, neg_num])])
+            fig.update_traces(marker_color='rgb(158,202,225)', marker_line_color='rgb(8,48,107)',
+                              marker_line_width=1.5, opacity=0.6)
+            fig.update_layout(title_text='SENTIMENTS OF TWEETS FETCHED:')
+            st.write(fig)
+
+            fig2 = go.Figure(data=go.Scatter(
+                x = tw_list['polarity'],
+                y = tw_list['subjectivity'],
+
+                mode='markers',
+                marker=dict(
+                    size=16,
+                    color=tw_list['polarity'],  # set color equal to a variable
+                    colorscale='Viridis',  # one of plotly colorscales
+                    showscale=True
+                ),
+                ))
+            fig2.update_layout(title='Polarity And Subjectivity:')
+            fig2.update_xaxes(title_text='Polarity')
+            fig2.update_yaxes(title_text='Subjectivity')
+
+            st.write(fig2)
+
+    else:
+        st.error('Please enter a hashtag')
 
