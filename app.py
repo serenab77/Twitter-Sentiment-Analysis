@@ -164,7 +164,6 @@ with header:
     st.title('Welcome to our Data Science Project')
     st.subheader('We will analyse data obtained by scrapping tweets using the twitter API')
     st.header('')
-    st.header('')
     st.header('Enter the hashtag:')
 
 with dataset:
@@ -182,11 +181,12 @@ with dataset:
             st.error('Please perform scraping first')
 
 #Sentiment Analysis:
-    if search_words != '#':
-        if pressed :
+    if search_words != '#' and search_words != '':
+        if pressed:
             scraptweets(search_words, date_since, numTweets, numRuns)
             st.success('Scraping done successfully ')
             tweets = pd.read_csv('data/test_data_tweets.csv')
+            column1, column2 = st.beta_columns(2)
             tweetList= tweets.text
             for tweet in tweetList:
                 tweet_list.append(tweet)
@@ -221,15 +221,22 @@ with dataset:
             neutral_list = pd.DataFrame(neutral_list)
             negative_list = pd.DataFrame(negative_list)
             positive_list = pd.DataFrame(positive_list)
-            st.write("total number: ", len(tweet_list))
             pos_num = len(positive_list)
-            st.write("positive number: ", pos_num)
             neg_num = len(negative_list)
-            st.write("negative number: ", neg_num)
             neu_num = len(neutral_list)
-            st.write("neutral number: ", neu_num)
+            with column1:
+                st.header('')
+                st.header('')
+                st.write("total number: ", len(tweet_list))
+                st.write("positive number: ", pos_num)
+                st.write("negative number: ", neg_num)
+                st.write("neutral number: ", neu_num)
+
+            column2.write('Tweet List:')
+            column2.write(tweet_list)
 
             #Visualizing Data
+            st.header('')
             bar_chart = ['positive', 'neutral', 'negative']
 
             fig = go.Figure([go.Bar(x=bar_chart, y=[pos_num, neu_num, neg_num])])
