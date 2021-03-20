@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
 import tweepy
-from PIL import Image
 import plotly as pt
+import plotly.graph_objects as go
 from tweepy import OAuthHandler
-from tweepy.streaming import StreamListener
 import json
 import csv
 import re
@@ -14,6 +13,21 @@ import preprocessor as p
 import os
 import time
 from datetime import datetime, timedelta, date
+import sys
+import matplotlib.pyplot as plt
+import numpy as np
+import nltk
+import pycountry
+
+#from wordcloud import WordCloud, STOPWORDS
+from PIL import Image
+import nltk
+nltk.downloader.download('vader_lexicon')
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from langdetect import detect
+from nltk.stem import SnowballStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import CountVectorizer
 
 #authorize tweepy
 consumer_key = 'e62eKZbH5PiOqscveQE2iqEZV'
@@ -113,6 +127,7 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
         print('Total time taken to scrap is {} minutes.'.format(round(program_end - program_start) / 60, 2))
 
 
+
 # streamlit front-end
 def local_css(file_name):
     with open(file_name) as f:
@@ -134,12 +149,24 @@ days_to_subtract = st.sidebar.slider(' ', min_value=0, max_value=7, step=1, valu
 date_since = date.today() - timedelta(days=days_to_subtract)
 numRuns = 1
 
+def percentage(part,whole):
+    return 100 * float(part)/float(whole)
+positive = 0
+negative = 0
+neutral = 0
+polarity = 0
+tweet_list = []
+neutral_list = []
+negative_list = []
+positive_list = []
+
 with header:
     st.title('Welcome to our Data Science Project')
     st.subheader('We will analyse data obtained by scrapping tweets using the twitter API')
     st.header('')
     st.header('')
     st.header('Enter the hashtag:')
+
 with dataset:
     search_words = st.text_input('', '#')
     col1, col2 = st.beta_columns(2)
@@ -154,11 +181,59 @@ with dataset:
         except FileNotFoundError:
             st.error('Please perform scraping first')
 
+#Sentiment Analysis:
+    if search_words != '#':
+        if pressed :
+            scraptweets(search_words, date_since, numTweets, numRuns)
+            st.success('Scraping done successfully ')
+            tweets = pd.read_csv('data/test_data_tweets.csv')
+            tweetList= tweets.text
+            for tweet in tweetList:
+                tweet_list.append(tweet)
+                analysis = TextBlob(tweet)
+                score = SentimentIntensityAnalyzer().polarity_scores(tweet)
+                neg = score['neg']
+                neu = score['neu']
+                pos = score['pos']
+                comp = score['compound']
+                polarity += analysis.sentiment.polarity
 
-    if pressed:
+                if neg > pos:
+                    negative_list.append(tweet)
+                    negative += 1
+                elif pos > neg:
+                    positive_list.append(tweet)
+                    positive += 1
+                elif pos == neg:
+                    neutral_list.append(tweet)
+                    neutral += 1
 
-        scraptweets(search_words, date_since, numTweets, numRuns)
-        st.success('Scraping done successfully ')
+            positive = percentage(positive, numTweets)
+            negative = percentage(negative, numTweets)
+            neutral = percentage(neutral, numTweets)
+            polarity = percentage(polarity, numTweets)
+            positive = format(positive, '.1f')
+            negative = format(negative, '.1f')
+            neutral = format(neutral, '.1f')
 
+            # Number of Tweets (Total, Positive, Negative, Neutral)
+            tweet_list = pd.DataFrame(tweet_list)
+            neutral_list = pd.DataFrame(neutral_list)
+            negative_list = pd.DataFrame(negative_list)
+            positive_list = pd.DataFrame(positive_list)
+            st.write("total number: ", len(tweet_list))
+            pos_num = len(positive_list)
+            st.write("positive number: ", pos_num)
+            neg_num = len(negative_list)
+            st.write("negative number: ", neg_num)
+            neu_num = len(neutral_list)
+            st.write("neutral number: ", neu_num)
 
+            #Visualizing Data
+            bar_chart = ['positive', 'neutral', 'negative']
+
+            fig = go.Figure([go.Bar(x=bar_chart, y=[pos_num, neu_num, neg_num])])
+            st.write(fig)
+    else:
+        st.error('Please enter a hashtag')
 
