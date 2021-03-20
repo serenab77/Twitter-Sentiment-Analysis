@@ -6,6 +6,7 @@ attrs==20.3.0
 auth==0.5.3
 backcall==0.2.0
 base58==2.1.0
+beautifulsoup4==4.9.3
 bleach==3.3.0
 blinker==1.4
 cachetools==4.2.1
@@ -90,6 +91,7 @@ sentencepiece==0.1.95
 six==1.15.0
 smart-open==4.2.0
 smmap==3.0.5
+soupsieve==2.2.1
 streamlit==0.79.0
 terminado==0.9.3
 testpath==0.4.4
