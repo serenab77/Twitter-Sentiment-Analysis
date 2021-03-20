@@ -11,6 +11,7 @@ from textblob import TextBlob
 import string
 import preprocessor as p
 import os
+from os import environ
 import time
 from datetime import datetime, timedelta, date
 import sys
@@ -30,14 +31,14 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import CountVectorizer
 
 #authorize tweepy
-consumer_key = 'e62eKZbH5PiOqscveQE2iqEZV'
-consumer_secret = 'Mi7E6XlxmQXoRy6wpMkhzPPc2FRGMdklepcUDGBycpUAoGrvMZ'
+consumer_key = environ['consumer_key']
+consumer_secret = environ['consumer_secret']
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 
 redirect_url = auth.get_authorization_url()
 # Get access token
-key = '1165311351868100609-cSKLvQQW1Qc5dQjnHLBy7gbPvXk5Og'
-secret = 'kEfF616sXSZ2GUnQHqnrfuMOs2B7RT6gqyJUMVUyf9fJ1'
+key = environ['key']
+secret = environ['secret']
 auth.set_access_token(key, secret)
 # Construct the API instance
 api = tweepy.API(auth)
