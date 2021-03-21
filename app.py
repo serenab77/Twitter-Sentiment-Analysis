@@ -352,6 +352,8 @@ with dataset:
             st.write("number of neutral number: ", neu_num)
 
             st.write('Cleaned Tweet List:')
+            tw_list.reset_index(inplace=True)
+            tw_list.index += 1
             st.write(tw_list)
 
             # Visualizing Data
