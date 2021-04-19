@@ -56,7 +56,7 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
                                       'followers', 'totaltweets', 'usercreatedts', 'tweetcreatedts',
                                       'retweetcount', 'text', 'hashtags']
                              )
-    program_start = time.time()
+
     for i in range(0, numRuns):
         # We will time how long it takes to scrape tweets for each run:
         start_run = time.time()
@@ -137,10 +137,7 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
         # Store dataframe in csv with creation date timestamp
 
         db_tweets.to_csv(filename, index=False)
-
-        program_end = time.time()
         print('Scraping has completed!')
-        print('Total time taken to scrap is {} minutes.'.format(round(program_end - program_start) / 60, 2))
 
 
 
@@ -208,6 +205,7 @@ with dataset:
 #Sentiment Analysis:
     if search_words != '#' and search_words != '' and search_words != '@':
         if pressed:
+            program_start = time.time()
             scraptweets(search_words, date_since, numTweets, numRuns)
             st.success('Scraping done successfully ')
             tweets = pd.read_csv('data/test_data_tweets.csv')
@@ -355,6 +353,9 @@ with dataset:
             tw_list.reset_index(inplace=True)
             tw_list.index += 1
             st.write(tw_list)
+
+            program_end = time.time()
+            st.write('Total time taken is {} minutes.'.format(round(program_end - program_start) / 60))
 
             # Visualizing Data
             st.header('')
