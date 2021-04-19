@@ -56,7 +56,7 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
                                       'followers', 'totaltweets', 'usercreatedts', 'tweetcreatedts',
                                       'retweetcount', 'text', 'hashtags']
                              )
-    program_start = time.time()
+
     for i in range(0, numRuns):
         # We will time how long it takes to scrape tweets for each run:
         start_run = time.time()
@@ -64,57 +64,69 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
         # Collect tweets using the Cursor object
         # .Cursor() returns an object that you can iterate or loop over to access the data collected.
         # Each item in the iterator has various attributes that you can access to get information about each tweet
-        tweets = tweepy.Cursor(api.search, q=search_words, lang="en", until=date_since, tweet_mode='extended', count=numTweets).items(
-            numTweets)
-        # Store these tweets into a python list
+        if option == 'Username':
+            utweets = api.user_timeline(screen_name=search_words, count=numTweets, lang='en', tweet_mode='extended')
+            db_tweets = pd.DataFrame(columns=['text'])
+            for t in utweets:
+                text = t.full_text
+                db_tweets = db_tweets.append({'text' : text}, ignore_index = True)
 
-        tweet_list = [tweet for tweet in tweets]
 
-        # Obtain the following info (methods to call them out):
-        # user.screen_name - twitter handle
-        # user.description - description of account
-        # user.location - where is he tweeting from
-        # user.friends_count - no. of other users that user is following (following)
-        # user.followers_count - no. of other users who are following this user (followers)
-        # user.statuses_count - total tweets by user
-        # user.created_at - when the user account was created
-        # created_at - when the tweet was created
-        # retweet_count - no. of retweets
-        # (deprecated) user.favourites_count - probably total no. of tweets that is favourited by user
-        # retweeted_status.full_text - full text of the tweet
-        # tweet.entities['hashtags'] - hashtags in the tweet
-        # Begin scraping the tweets individually:
-        noTweets = 0
+        else:
+            tweets = tweepy.Cursor(api.search, q=search_words, lang="en", until=date_since, tweet_mode='extended', count=numTweets).items(
+                numTweets)
 
-        for tweet in tweet_list:
-            # Pull the values
-            username = tweet.user.screen_name
-            acctdesc = tweet.user.description
-            location = tweet.user.location
-            following = tweet.user.friends_count
-            followers = tweet.user.followers_count
-            totaltweets = tweet.user.statuses_count
-            usercreatedts = tweet.user.created_at
-            tweetcreatedts = tweet.created_at
-            retweetcount = tweet.retweet_count
-            hashtags = tweet.entities['hashtags']
-            try:
-                text = tweet.retweeted_status.full_text
-            except AttributeError:  # Not a Retweet
-                text = tweet.full_text
-                # Add the 11 variables to the empty list - ith_tweet:
-            ith_tweet = [username, acctdesc, location, following, followers, totaltweets,
-                         usercreatedts, tweetcreatedts, retweetcount, text, hashtags]
-            # Append to dataframe - db_tweets
-            db_tweets.loc[len(db_tweets)] = ith_tweet
-            # increase counter - noTweets
-            noTweets += 1
+            # Store these tweets into a python list
+
+            tweet_list = [tweet for tweet in tweets]
+
+            # Obtain the following info (methods to call them out):
+            # user.screen_name - twitter handle
+            # user.description - description of account
+            # user.location - where is he tweeting from
+            # user.friends_count - no. of other users that user is following (following)
+            # user.followers_count - no. of other users who are following this user (followers)
+            # user.statuses_count - total tweets by user
+            # user.created_at - when the user account was created
+            # created_at - when the tweet was created
+            # retweet_count - no. of retweets
+            # (deprecated) user.favourites_count - probably total no. of tweets that is favourited by user
+            # retweeted_status.full_text - full text of the tweet
+            # tweet.entities['hashtags'] - hashtags in the tweet
+            # Begin scraping the tweets individually:
+            noTweets = 0
+
+            for tweet in tweet_list:
+                # Pull the values
+                username = tweet.user.screen_name
+                acctdesc = tweet.user.description
+                location = tweet.user.location
+                following = tweet.user.friends_count
+                followers = tweet.user.followers_count
+                totaltweets = tweet.user.statuses_count
+                usercreatedts = tweet.user.created_at
+                tweetcreatedts = tweet.created_at
+                retweetcount = tweet.retweet_count
+                hashtags = tweet.entities['hashtags']
+                try:
+                    text = tweet.retweeted_status.full_text
+                except AttributeError:  # Not a Retweet
+                    text = tweet.full_text
+                    # Add the 11 variables to the empty list - ith_tweet:
+                ith_tweet = [username, acctdesc, location, following, followers, totaltweets,
+                             usercreatedts, tweetcreatedts, retweetcount, text, hashtags]
+                # Append to dataframe - db_tweets
+                db_tweets.loc[len(db_tweets)] = ith_tweet
+                # increase counter - noTweets
+                noTweets += 1
+
+
 
         # Run ended:
         end_run = time.time()
         duration_run = round((end_run - start_run) / 60, 2)
 
-        print('no. of tweets scraped for run {} is {}'.format(i + 1, noTweets))
+        print('no. of tweets scraped for run {} is {}'.format(i + 1, numTweets))
         print('time take for {} run to complete is {} mins'.format(i + 1, duration_run))
 
         # Once all runs have completed, save them to a single csv file:
@@ -123,11 +135,9 @@ def scraptweets(search_words, date_since, numTweets, numRuns):
         path = os.getcwd()
         filename = path + '/data/' + 'test_data_tweets.csv'
         # Store dataframe in csv with creation date timestamp
-        db_tweets.to_csv(filename, index=False)
 
-        program_end = time.time()
+        db_tweets.to_csv(filename, index=False)
         print('Scraping has completed!')
-        print('Total time taken to scrap is {} minutes.'.format(round(program_end - program_start) / 60, 2))
 
 
 
@@ -139,12 +149,12 @@ def local_css(file_name):
 
 local_css('style.css')
 
-
 head_img = st.beta_container()
 header = st.beta_container()
 dataset = st.beta_container()
 footer = st.beta_container()
 
+option = st.sidebar.selectbox('Analyse by:', ('Hashtag', 'Username'))
 st.sidebar.header('How many tweets should be extracted?')
 numTweets = st.sidebar.slider(' ', min_value=10, max_value=500, step=50, value=50)
 st.sidebar.header('Extract tweets from how many days ago?')
@@ -152,8 +162,10 @@ days_to_subtract = st.sidebar.slider(' ', min_value=0, max_value=7, step=1, valu
 date_since = date.today() - timedelta(days=days_to_subtract)
 numRuns = 1
 
-def percentage(part,whole):
+
+def percentage(part, whole):
     return 100 * float(part)/float(whole)
+
 positive = 0
 negative = 0
 neutral = 0
@@ -167,10 +179,16 @@ with header:
     st.title('Welcome to our Data Science Project')
     st.subheader('We will analyse data obtained by scrapping tweets using the twitter API')
     st.header('')
-    st.header('Enter the hashtag:')
+    if option == 'Hashtag':
+        st.header('Enter the hashtag:')
+    else:
+        st.header('Enter the Username:')
 
 with dataset:
-    search_words = st.text_input('', '#')
+    if option == 'Hashtag':
+        search_words = st.text_input('', '#')
+    else:
+        search_words = st.text_input('', '@')
     col1, col2 = st.beta_columns(2)
     pressed = col1.button('Analyse')
     press = col2.button('Show raw tweet data')
@@ -178,14 +196,16 @@ with dataset:
         st.subheader('Tweets:')
         try:
             data = pd.read_csv('data/test_data_tweets.csv')
+            data.index+=1
             st.write(data.head(numTweets))
             st.success("Success")
         except FileNotFoundError:
             st.error('Please perform scraping first')
 
 #Sentiment Analysis:
-    if search_words != '#' and search_words != '':
+    if search_words != '#' and search_words != '' and search_words != '@':
         if pressed:
+            program_start = time.time()
             scraptweets(search_words, date_since, numTweets, numRuns)
             st.success('Scraping done successfully ')
             tweets = pd.read_csv('data/test_data_tweets.csv')
@@ -221,6 +241,7 @@ with dataset:
 
             # Number of Tweets (Total, Positive, Negative, Neutral)
             tweet_list = pd.DataFrame(tweet_list)
+            tweet_list.index+=1
             neutral_list = pd.DataFrame(neutral_list)
             negative_list = pd.DataFrame(negative_list)
             positive_list = pd.DataFrame(positive_list)
@@ -329,7 +350,12 @@ with dataset:
             st.write("number of neutral number: ", neu_num)
 
             st.write('Cleaned Tweet List:')
+            tw_list.reset_index(inplace=True)
+            tw_list.index += 1
             st.write(tw_list)
+
+            program_end = time.time()
+            st.write('Total time taken is {} minutes.'.format(round(program_end - program_start) / 60))
 
             # Visualizing Data
             st.header('')
@@ -360,5 +386,8 @@ with dataset:
             st.write(fig2)
 
     else:
-        st.error('Please enter a hashtag')
+        if option == 'Hashtag':
+            st.error('Please enter a hashtag')
+        else:
+            st.error('Please enter a username')
 
