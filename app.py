@@ -9,28 +9,14 @@ import csv
 import re
 from textblob import TextBlob
 import string
-import preprocessor as p
 import os
 import time
 from datetime import datetime, timedelta, date
-import sys
-import numpy as np
-import pycountry
-from bs4 import BeautifulSoup
-from PIL import Image
 import nltk
 nltk.downloader.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('wordnet')
-from nltk.corpus import stopwords
-from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from nltk.stem.porter import PorterStemmer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from langdetect import detect
-from nltk.stem import SnowballStemmer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from sklearn.feature_extraction.text import CountVectorizer
 from textblob import Blobber
 from textblob.sentiments import NaiveBayesAnalyzer
 tb = Blobber(analyzer=NaiveBayesAnalyzer())
