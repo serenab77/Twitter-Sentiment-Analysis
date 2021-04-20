@@ -9,28 +9,16 @@ import csv
 import re
 from textblob import TextBlob
 import string
-import preprocessor as p
 import os
 import time
 from datetime import datetime, timedelta, date
-import sys
-import numpy as np
-import pycountry
-from bs4 import BeautifulSoup
-from PIL import Image
+
 import nltk
 nltk.downloader.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('wordnet')
-from nltk.corpus import stopwords
-from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from nltk.stem.porter import PorterStemmer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from langdetect import detect
-from nltk.stem import SnowballStemmer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from sklearn.feature_extraction.text import CountVectorizer
 
 #authorize tweepy
 consumer_key = 'e62eKZbH5PiOqscveQE2iqEZV'
@@ -230,14 +218,6 @@ with dataset:
                 elif pos == neg:
                     neutral_list.append(tweet)
                     neutral += 1
-
-            positive = percentage(positive, numTweets)
-            negative = percentage(negative, numTweets)
-            neutral = percentage(neutral, numTweets)
-            polarity = percentage(polarity, numTweets)
-            positive = format(positive, '.1f')
-            negative = format(negative, '.1f')
-            neutral = format(neutral, '.1f')
 
             # Number of Tweets (Total, Positive, Negative, Neutral)
             tweet_list = pd.DataFrame(tweet_list)
