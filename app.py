@@ -9,28 +9,17 @@ import csv
 import re
 from textblob import TextBlob
 import string
-import preprocessor as p
 import os
 import time
 from datetime import datetime, timedelta, date
-import sys
-import numpy as np
-import pycountry
-from bs4 import BeautifulSoup
-from PIL import Image
 import nltk
 nltk.downloader.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('wordnet')
-from nltk.corpus import stopwords
-from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
-from nltk.stem.porter import PorterStemmer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from langdetect import detect
-from nltk.stem import SnowballStemmer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from sklearn.feature_extraction.text import CountVectorizer
+from textblob import Blobber
+from textblob.sentiments import NaiveBayesAnalyzer
+tb = Blobber(analyzer=NaiveBayesAnalyzer())
 
 #authorize tweepy
 consumer_key = 'e62eKZbH5PiOqscveQE2iqEZV'
@@ -198,6 +187,8 @@ with dataset:
             data = pd.read_csv('data/test_data_tweets.csv')
             data.index+=1
             st.write(data.head(numTweets))
+            for text in data.text.head(numTweets):
+                st.write(text)
             st.success("Success")
         except FileNotFoundError:
             st.error('Please perform scraping first')
@@ -208,36 +199,30 @@ with dataset:
             program_start = time.time()
             scraptweets(search_words, date_since, numTweets, numRuns)
             st.success('Scraping done successfully ')
+            df = pd.DataFrame()
             tweets = pd.read_csv('data/test_data_tweets.csv')
             column1, column2 = st.beta_columns(2)
             tweetList= tweets.text
+
+
             for tweet in tweetList:
                 tweet_list.append(tweet)
-                analysis = TextBlob(tweet)
-                score = SentimentIntensityAnalyzer().polarity_scores(tweet)
-                neg = score['neg']
-                neu = score['neu']
-                pos = score['pos']
-                comp = score['compound']
-                polarity += analysis.sentiment.polarity
-
-                if neg > pos:
+                bayes = tb(tweet)
+                score = bayes.sentiment
+                print(score)
+                neg = score[2]
+                pos = score[1]
+                polarity = pos - neg
+                print(polarity)
+                if polarity < -0.2:
                     negative_list.append(tweet)
                     negative += 1
-                elif pos > neg:
+                elif polarity > 0.2:
                     positive_list.append(tweet)
                     positive += 1
-                elif pos == neg:
+                else:
                     neutral_list.append(tweet)
                     neutral += 1
-
-            positive = percentage(positive, numTweets)
-            negative = percentage(negative, numTweets)
-            neutral = percentage(neutral, numTweets)
-            polarity = percentage(polarity, numTweets)
-            positive = format(positive, '.1f')
-            negative = format(negative, '.1f')
-            neutral = format(neutral, '.1f')
 
             # Number of Tweets (Total, Positive, Negative, Neutral)
             tweet_list = pd.DataFrame(tweet_list)
@@ -313,21 +298,23 @@ with dataset:
             tw_list[['polarity', 'subjectivity']] = tw_list['text'].apply(
                 lambda Text: pd.Series(TextBlob(Text).sentiment))
             for index, row in tw_list['text'].iteritems():
-                score = SentimentIntensityAnalyzer().polarity_scores(row)
-                neg = score['neg']
-                neu = score['neu']
-                pos = score['pos']
-                comp = score['compound']
-                if neg > pos:
+                bayes = tb(row)
+                score = bayes.sentiment
+                print(score)
+                neg = score[2]
+                pos = score[1]
+                polarity = pos - neg
+                print(polarity)
+                tw_list.loc[index, 'polarity'] = polarity
+                if polarity < -0.2:
                     tw_list.loc[index, 'sentiment'] = "negative"
-                elif pos > neg:
+                elif polarity > 0.2:
                     tw_list.loc[index, 'sentiment'] = "positive"
                 else:
                     tw_list.loc[index, 'sentiment'] = "neutral"
+
                 tw_list.loc[index, 'neg'] = neg
-                tw_list.loc[index, 'neu'] = neu
                 tw_list.loc[index, 'pos'] = pos
-                tw_list.loc[index, 'compound'] = comp
 
 
             # Creating new data frames for all sentiments (positive, negative and neutral)
